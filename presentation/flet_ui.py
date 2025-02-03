@@ -116,23 +116,34 @@ class S3FileExplorerApp:
             file_picker = ""
 
             def file_picker_result(e):
-                upload_list = []
-                if file_picker.result != None and file_picker.result.files != None:
-                    for f in file_picker.result.files:
-                        url = self.object_use_cases.generate_presigned_url(
-                            self.current_bucket, f.name
-                        )
-                        upload_list.append(
-                            ft.FilePickerUploadFile(
-                                f.name,
-                                upload_url=url,
+                if self.page.web:
+                    upload_list = []
+                    if file_picker.result != None and file_picker.result.files != None:
+                        for f in file_picker.result.files:
+                            url = self.object_use_cases.generate_presigned_url(
+                                self.current_bucket, f.name
                             )
-                        )
-                try:
-                    file_picker.upload(upload_list)
-                    load_objects()
-                except Exception as ex:
-                    print(f"Error uploading object: {ex}")
+                            upload_list.append(
+                                ft.FilePickerUploadFile(
+                                    f.name,
+                                    upload_url=url,
+                                )
+                            )
+                    try:
+                        file_picker.upload(upload_list)
+                        load_objects()
+                    except Exception as ex:
+                        print(f"Error uploading object: {ex}")
+                else:
+                    if file_picker.result != None and file_picker.result.files != None:
+                        for f in file_picker.result.files:
+                            try:
+                                self.object_use_cases.upload_object(
+                                    bucket_name=self.current_bucket, file_path=f.path
+                                )
+                                load_objects()
+                            except Exception as ex:
+                                print(f"Error uploading object: {ex}")
 
             file_picker = ft.FilePicker(on_result=file_picker_result)
 
@@ -146,7 +157,7 @@ class S3FileExplorerApp:
             [
                 ft.AppBar(title=ft.Text(f"Objects"), bgcolor=ft.colors.INDIGO_800),
                 ft.Text(
-                    f"Current Bucket: {self.current_bucket}", size=24, weight="bold"
+                    f"Current Bucket: '{self.current_bucket}'", size=24, weight="bold"
                 ),
                 object_list_view,
                 ft.Row(
