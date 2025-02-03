@@ -5,6 +5,71 @@ from application.use_cases.object_use_cases import ObjectUseCases
 from adapters.boto3_s3_repository import Boto3S3Repository
 
 
+class ITEM(ft.Row):
+    def __init__(self, text: str, datetime, on_delete, on_rename, object_bucket=None):
+        """
+        UI Component for displaying an S3 Bucket or Object.
+
+        :param text: Name of the bucket/object
+        :param datetime: Timestamp of creation/modification
+        :param on_delete: Callback function for delete action
+        :param on_rename: Callback function for rename action
+        """
+        super().__init__()
+        self.text_value = text
+        self.object_bucket = object_bucket
+        self.text_view = ft.Text(text)
+        self.date_view = ft.Text(datetime.strftime("%Y-%m-%d %H:%M:%S"))
+        self.text_edit = ft.TextField(value=text, visible=False)
+
+        self.edit_button = ft.IconButton(icon=ft.icons.EDIT, on_click=self.edit)
+        self.save_button = ft.IconButton(
+            icon=ft.icons.SAVE, on_click=self.save, visible=False
+        )
+        self.delete_button = ft.IconButton(icon=ft.icons.DELETE, on_click=self.delete)
+
+        self.on_delete = on_delete
+        self.on_rename = on_rename
+
+        self.controls = [
+            self.text_view,
+            self.date_view,
+            self.text_edit,
+            # self.edit_button,
+            # self.save_button,
+            self.delete_button,
+        ]
+
+    def edit(self, e):
+        """Switch to edit mode."""
+        self.edit_button.visible = False
+        self.save_button.visible = True
+        self.text_view.visible = False
+        self.text_edit.visible = True
+        self.update()
+
+    def save(self, e):
+        """Save new name and update view."""
+        new_name = self.text_edit.value.strip()
+        if new_name and new_name != self.text_value:
+            self.on_rename(self.text_value, new_name)  # Call rename handler
+            self.text_value = new_name
+
+        self.edit_button.visible = True
+        self.save_button.visible = False
+        self.text_view.visible = True
+        self.text_view.value = self.text_value
+        self.text_edit.visible = False
+        self.update()
+
+    def delete(self, e):
+        """Call delete handler."""
+        if self.object_bucket:
+            self.on_delete(bucket_name=self.object_bucket, object_key=self.text_value)
+        else:
+            self.on_delete(bucket_name=self.text_value)
+
+
 class S3FileExplorerApp:
     def __init__(self):
         self.current_bucket = None
@@ -15,7 +80,7 @@ class S3FileExplorerApp:
 
     def main(self, page: ft.Page):
         self.page = page
-        page.title = "S3 File Explorer"
+        page.title = "S3 Explorer"
         page.scroll = ft.ScrollMode.AUTO
         page.on_route_change = self.route_change
         page.on_view_pop = self.view_pop
@@ -42,7 +107,12 @@ class S3FileExplorerApp:
                 buckets = self.bucket_use_cases.get_buckets()
                 for bucket in buckets:
                     bucket_control = ft.ListTile(
-                        title=ft.Text(bucket.name),
+                        title=ITEM(
+                            text=bucket.name,
+                            datetime=bucket.creation_date,
+                            on_delete=delete_bucket,
+                            on_rename=rename_bucket,
+                        ),
                         on_click=lambda e, b=bucket.name: self.open_objects_view(b),
                     )
                     bucket_list_view.controls.append(bucket_control)
@@ -50,8 +120,18 @@ class S3FileExplorerApp:
             except Exception as e:
                 print(f"Error loading buckets: {e}")
 
+        def delete_bucket(bucket_name):
+            """Delete bucket from use case and refresh list."""
+            self.bucket_use_cases.delete_bucket(bucket_name)
+            load_buckets()
+
+        def rename_bucket(old_name, new_name):
+            """Rename bucket using use case."""
+            self.bucket_use_case.rename_bucket(old_name, new_name)
+            load_buckets()
+
         def add_bucket_dialog(e):
-            def submit_dialog(e):
+            def handle_add(e):
                 bucket_name = bucket_input.value.strip()
                 if bucket_name:
                     try:
@@ -68,8 +148,8 @@ class S3FileExplorerApp:
                 title=ft.Text("Add Bucket"),
                 content=bucket_input,
                 actions=[
-                    ft.TextButton("Cancel", on_click=lambda _: dialog.close()),
-                    ft.TextButton("Add", on_click=submit_dialog),
+                    ft.TextButton("Cancel", on_click=lambda _: self.page.close(dialog)),
+                    ft.TextButton("Add", on_click=handle_add),
                 ],
             )
             self.page.open(dialog)
@@ -101,16 +181,30 @@ class S3FileExplorerApp:
                 objects = self.object_use_cases.get_objects(self.current_bucket)
                 for obj in objects:
                     object_control = ft.ListTile(
-                        title=ft.Text(obj.key),
-                        trailing=ft.Text(
-                            obj.last_modified.strftime("%Y-%m-%d %H:%M:%S")
+                        title=ITEM(
+                            text=obj.key,
+                            datetime=obj.last_modified,
+                            on_delete=delete_object,
+                            on_rename=rename_object,
+                            object_bucket=self.current_bucket,
                         ),
                         on_click=lambda e, o=obj.key: self.on_object_click(o),
                     )
+
                     object_list_view.controls.append(object_control)
                 object_list_view.update()
             except Exception as e:
                 print(f"Error loading objects: {e}")
+
+        def delete_object(bucket_name, object_key):
+            """Delete object from use case and refresh list."""
+            self.object_use_cases.delete_object(bucket_name, object_key)
+            load_objects()
+
+        def rename_object(old_name, new_name):
+            """Rename object using use case."""
+            self.object_use_cases.rename_object(old_name, new_name)
+            load_objects()
 
         def add_object_dialog(e):
             file_picker = ""
