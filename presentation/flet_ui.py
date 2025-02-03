@@ -232,7 +232,7 @@ class S3FileExplorerApp:
                     if file_picker.result != None and file_picker.result.files != None:
                         for f in file_picker.result.files:
                             try:
-                                self.object_use_cases.upload_object(
+                                self.object_use_cases.put_object(
                                     bucket_name=self.current_bucket, file_path=f.path
                                 )
                                 load_objects()

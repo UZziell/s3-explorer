@@ -10,8 +10,8 @@ class ObjectUseCases:
     def get_objects(self, bucket_name: str) -> List[S3Object]:
         return self.repository.list_objects(bucket_name)
 
-    def upload_object(self, bucket_name: str, file_path: str) -> bool:
-        return self.repository.upload_object(bucket_name, file_path)
+    def put_object(self, bucket_name: str, file_path: str) -> bool:
+        return self.repository.put_object(bucket_name, file_path)
 
     def generate_presigned_url(
         self, bucket_name: str, file_name: str, expiration=3600

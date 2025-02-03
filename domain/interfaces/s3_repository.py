@@ -22,7 +22,7 @@ class S3Repository(ABC):
         pass
 
     @abstractmethod
-    def upload_object(self, bucket_name: str, file_path: str) -> bool:
+    def put_object(self, bucket_name: str, file_path: str) -> bool:
         pass
 
     @abstractmethod

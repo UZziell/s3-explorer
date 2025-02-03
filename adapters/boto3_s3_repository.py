@@ -56,7 +56,7 @@ class Boto3S3Repository(S3Repository):
             logging.error(f"Error listing objects in {bucket_name}: {e}")
             return []
 
-    def upload_object(self, bucket_name: str, file_path: str) -> bool:
+    def put_object(self, bucket_name: str, file_path: str) -> bool:
         try:
             object_key = file_path.split("/")[-1]
             with open(file_path, "rb") as file_data:
