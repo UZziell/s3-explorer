@@ -1,4 +1,4 @@
-from domain.repositories.s3_repository import S3Repository
+from domain.interfaces.s3_repository import S3Repository
 from domain.entities.s3_bucket import S3Bucket
 from typing import List
 

@@ -1,9 +1,10 @@
 import boto3
 import logging
+from io import BytesIO
 from botocore.exceptions import ClientError
 from typing import List
 from datetime import datetime
-from domain.repositories.s3_repository import S3Repository
+from domain.interfaces.s3_repository import S3Repository
 from domain.entities.s3_bucket import S3Bucket
 from domain.entities.s3_object import S3Object
 
@@ -66,6 +67,20 @@ class Boto3S3Repository(S3Repository):
         except ClientError as e:
             logging.error(f"Error uploading object {file_path}: {e}")
             return False
+
+    def generate_presigned_url(
+        self, bucket_name: str, file_name: str, expiration=3600
+    ) -> str:
+        try:
+            url = self.s3_client.generate_presigned_url(
+                "put_object",
+                Params={"Bucket": bucket_name, "Key": file_name},
+                ExpiresIn=expiration,
+            )
+            return url
+        except ClientError as e:
+            logging.error(f"Error generating presigned URL {file_name}: {e}")
+            return None
 
     def delete_object(self, bucket_name: str, object_key: str) -> bool:
         try:

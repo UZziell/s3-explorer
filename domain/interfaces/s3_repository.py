@@ -26,5 +26,11 @@ class S3Repository(ABC):
         pass
 
     @abstractmethod
+    def generate_presigned_url(
+        self, bucket_name: str, file_name: str, expiration
+    ) -> str:
+        pass
+
+    @abstractmethod
     def delete_object(self, bucket_name: str, object_key: str) -> bool:
         pass

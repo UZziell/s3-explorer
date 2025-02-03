@@ -102,6 +102,9 @@ class S3FileExplorerApp:
                 for obj in objects:
                     object_control = ft.ListTile(
                         title=ft.Text(obj.key),
+                        trailing=ft.Text(
+                            obj.last_modified.strftime("%Y-%m-%d %H:%M:%S")
+                        ),
                         on_click=lambda e, o=obj.key: self.on_object_click(o),
                     )
                     object_list_view.controls.append(object_control)
@@ -110,35 +113,44 @@ class S3FileExplorerApp:
                 print(f"Error loading objects: {e}")
 
         def add_object_dialog(e):
+            file_picker = ""
+
             def file_picker_result(e):
-                selected_file = e.files[0]
-                if selected_file:
-                    file_path = selected_file.path
-                    try:
-                        self.object_use_cases.upload_object(
-                            self.current_bucket, file_path
+                upload_list = []
+                if file_picker.result != None and file_picker.result.files != None:
+                    for f in file_picker.result.files:
+                        url = self.object_use_cases.generate_presigned_url(
+                            self.current_bucket, f.name
                         )
-                        load_objects()
-                    except Exception as ex:
-                        print(f"Error uploading object: {ex}")
+                        upload_list.append(
+                            ft.FilePickerUploadFile(
+                                f.name,
+                                upload_url=url,
+                            )
+                        )
+                try:
+                    file_picker.upload(upload_list)
+                    load_objects()
+                except Exception as ex:
+                    print(f"Error uploading object: {ex}")
 
             file_picker = ft.FilePicker(on_result=file_picker_result)
+
             self.page.overlay.append(file_picker)
-            file_picker.pick_files()
+            self.page.update()
+            file_picker.pick_files(allow_multiple=True)
 
         load_objects()
         return ft.View(
             "/objects",
             [
+                ft.AppBar(title=ft.Text(f"Objects"), bgcolor=ft.colors.INDIGO_800),
                 ft.Text(
-                    f"Objects in Bucket: {self.current_bucket}", size=24, weight="bold"
+                    f"Current Bucket: {self.current_bucket}", size=24, weight="bold"
                 ),
                 object_list_view,
                 ft.Row(
                     [
-                        ft.AppBar(
-                            title=ft.Text("Objects"), bgcolor=ft.colors.INDIGO_800
-                        ),
                         ft.ElevatedButton("Add Object", on_click=add_object_dialog),
                         ft.ElevatedButton(
                             "Back to Buckets",
