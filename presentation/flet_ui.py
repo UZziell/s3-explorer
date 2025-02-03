@@ -1,7 +1,7 @@
 import flet as ft
 import os
-from application.use_cases.bucket_use_cases import BucketUseCases
-from application.use_cases.object_use_cases import ObjectUseCases
+from domain.use_cases.bucket_use_cases import BucketUseCases
+from domain.use_cases.object_use_cases import ObjectUseCases
 from adapters.boto3_s3_repository import Boto3S3Repository
 
 
