@@ -1,0 +1,23 @@
+services:
+  localstack:
+    container_name: "${LOCALSTACK_DOCKER_NAME:-localstack-main}"
+    image: localstack/localstack
+    restart: always
+    ports:
+      - "127.0.0.1:4566:4566"            # LocalStack Gateway
+      - "127.0.0.1:4510-4559:4510-4559"  # external services port range
+    environment:
+      # LocalStack configuration: https://docs.localstack.cloud/references/configuration/
+      - DEBUG=${DEBUG:-0}
+      - LOCALSTACK_PERSISTENCE=1
+      - DATA_DIR=${LOCALSTACK_DATA_DIR:-/tmp/lsdata}
+      - PERSISTENCE=1
+      - SERVICES=s3
+    volumes:
+      - "${LOCALSTACK_VOLUME_DIR:-./localstack-volume}:/tmp/lsdata"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+        max-file: "1"
